@@ -24,9 +24,18 @@ profile.cov
 go.work
 go.work.sum
 
-# env file
+# env files
 .env
+.env.*
+!.env.example
 
 # Editor/IDE
-# .idea/
-# .vscode/
+.idea/
+.vscode/
+
+# Temporary files
+*.tmp
+tmp
+
+# Logs
+*.log
