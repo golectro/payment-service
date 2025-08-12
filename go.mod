@@ -17,6 +17,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/viper v1.20.1
 	github.com/ulule/limiter/v3 v3.11.2
+	github.com/xendit/xendit-go v1.0.25
 	go.mongodb.org/mongo-driver v1.17.4
 	google.golang.org/grpc v1.74.2
 	gorm.io/datatypes v1.2.6

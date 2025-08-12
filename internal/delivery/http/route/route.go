@@ -12,6 +12,7 @@ type RouteConfig struct {
 	AuthMiddleware    gin.HandlerFunc
 	Viper             *viper.Viper
 	SwaggerController *http.SwaggerController
+	PaymentController *http.PaymentController
 }
 
 func (c *RouteConfig) Setup() {
@@ -19,4 +20,5 @@ func (c *RouteConfig) Setup() {
 
 	c.RegisterCommonRoutes(c.App)
 	c.RegisterSwaggerRoutes(api)
+	c.RegisterPaymentRoutes(api)
 }

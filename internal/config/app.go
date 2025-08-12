@@ -1,8 +1,11 @@
 package config
 
 import (
+	"golectro-payment/internal/delivery/http"
 	"golectro-payment/internal/delivery/http/middleware"
 	"golectro-payment/internal/delivery/http/route"
+	"golectro-payment/internal/repository"
+	"golectro-payment/internal/usecase"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -28,12 +31,19 @@ type BootstrapConfig struct {
 }
 
 func Bootstrap(config *BootstrapConfig) {
+	invoiceRepository := repository.NewInvoiceRepository(config.Log)
+
+	paymentUseCase := usecase.NewPaymentUsecase(config.DB, config.Log, config.Validate, config.Viper, invoiceRepository)
+
+	paymentController := http.NewPaymentController(config.Log, paymentUseCase)
+
 	authMiddleware := middleware.NewAuth(config.Viper)
 
 	routeConfig := route.RouteConfig{
-		App:            config.App,
-		AuthMiddleware: authMiddleware,
-		Viper:          config.Viper,
+		App:               config.App,
+		AuthMiddleware:    authMiddleware,
+		Viper:             config.Viper,
+		PaymentController: paymentController,
 	}
 	routeConfig.Setup()
 }
