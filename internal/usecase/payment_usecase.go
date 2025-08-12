@@ -63,6 +63,7 @@ func (uc *PaymentUseCase) CreateInvoice(ctx context.Context, userID uuid.UUID, e
 	invoice := &entity.Invoice{
 		ID:            uuid.New(),
 		OrderID:       uuid.MustParse(resp.ExternalID),
+		UserID:        userID,
 		Amount:        resp.Amount,
 		PaymentMethod: resp.PaymentMethod,
 		PayerEmail:    resp.PayerEmail,
@@ -89,6 +90,32 @@ func (uc *PaymentUseCase) CreateInvoice(ctx context.Context, userID uuid.UUID, e
 		InvoiceURL: invoice.InvoiceURL,
 		Amount:     invoice.Amount,
 		Status:     invoice.Status,
+	}
+
+	return response, nil
+}
+
+func (uc *PaymentUseCase) GetInvoiceByUserID(ctx context.Context, userID uuid.UUID) (*model.InvoiceResponse, error) {
+	tx := uc.DB.WithContext(ctx)
+
+	var invoice entity.Invoice
+	if err := uc.InvoiceRepository.FindByUserID(tx, userID, &invoice); err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, utils.WrapMessageAsError(constants.InvoiceNotFound)
+		}
+		uc.Log.WithError(err).Error("Failed to retrieve invoice")
+		return nil, utils.WrapMessageAsError(constants.InternalServerError, err)
+	}
+
+	response := &model.InvoiceResponse{
+		ID:          invoice.ID.String(),
+		OrderID:     invoice.OrderID.String(),
+		XenditID:    invoice.XenditID,
+		InvoiceURL:  invoice.InvoiceURL,
+		Amount:      invoice.Amount,
+		Status:      invoice.Status,
+		PayerEmail:  invoice.PayerEmail,
+		Description: invoice.Description,
 	}
 
 	return response, nil

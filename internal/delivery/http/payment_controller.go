@@ -46,3 +46,24 @@ func (pc *PaymentController) CreateInvoice(ctx *gin.Context) {
 	res := utils.SuccessResponse(ctx, http.StatusCreated, constants.InvoiceCreated, result)
 	ctx.JSON(res.StatusCode, res)
 }
+
+func (pc *PaymentController) GetInvoice(ctx *gin.Context) {
+	auth := middleware.GetUser(ctx)
+
+	invoice, err := pc.PaymentUseCase.GetInvoiceByUserID(ctx, auth.ID)
+	if err != nil {
+		pc.Log.WithError(err).Error("Failed to retrieve invoice")
+		res := utils.FailedResponse(ctx, http.StatusNotFound, constants.InternalServerError, err)
+		ctx.AbortWithStatusJSON(res.StatusCode, res)
+		return
+	}
+
+	if invoice == nil {
+		res := utils.FailedResponse(ctx, http.StatusNotFound, constants.InvoiceNotFound, nil)
+		ctx.AbortWithStatusJSON(res.StatusCode, res)
+		return
+	}
+
+	res := utils.SuccessResponse(ctx, http.StatusOK, constants.InvoiceRetrieved, invoice)
+	ctx.JSON(res.StatusCode, res)
+}

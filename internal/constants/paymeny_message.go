@@ -7,6 +7,10 @@ var (
 		"en": "Invoice created successfully",
 		"id": "Tagihan berhasil dibuat",
 	}
+	InvoiceRetrieved = model.Message{
+		"en": "Invoice retrieved successfully",
+		"id": "Tagihan berhasil diambil",
+	}
 )
 
 var (

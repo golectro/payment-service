@@ -35,6 +35,10 @@ var (
 		"en": "Internal server error",
 		"id": "Kesalahan internal server",
 	}
+	InvoiceNotFound = model.Message{
+		"en": "Invoice not found",
+		"id": "Tagihan tidak ditemukan",
+	}
 	TooManyRequests = model.Message{
 		"en": "Too many requests, please try again later",
 		"id": "Terlalu banyak permintaan, silakan coba lagi nanti",
