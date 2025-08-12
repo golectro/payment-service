@@ -26,7 +26,7 @@ type PaymentUseCase struct {
 	Viper             *viper.Viper
 }
 
-func NewPaymentUsecase(db *gorm.DB, log *logrus.Logger, validate *validator.Validate, viper *viper.Viper,  invoiceRepository *repository.InvoiceRepository) *PaymentUseCase {
+func NewPaymentUsecase(db *gorm.DB, log *logrus.Logger, validate *validator.Validate, viper *viper.Viper, invoiceRepository *repository.InvoiceRepository) *PaymentUseCase {
 	return &PaymentUseCase{
 		DB:                db,
 		Log:               log,
