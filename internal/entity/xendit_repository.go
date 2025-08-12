@@ -9,7 +9,7 @@ import (
 
 type Invoice struct {
 	ID            uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
-	ExternalID    uuid.UUID      `gorm:"type:char(36);index" json:"external_id"`
+	OrderID       uuid.UUID      `gorm:"type:char(36);index" json:"order_id"`
 	XenditID      string         `gorm:"index" json:"xendit_id"`
 	Amount        float64        `gorm:"not null" json:"amount"`
 	PaymentMethod string         `gorm:"size:255" json:"payment_method"`

@@ -45,7 +45,7 @@ func (uc *PaymentUseCase) CreateInvoice(ctx context.Context, userID uuid.UUID, e
 	xendit.Opt.SecretKey = uc.Viper.GetString("XENDIT_SECRET_KEY")
 
 	resp, err := invoice.Create(&invoice.CreateParams{
-		ExternalID:         request.ExternalID,
+		ExternalID:         request.OrderID,
 		Amount:             request.Amount,
 		PayerEmail:         email,
 		Description:        request.Description,
@@ -62,7 +62,7 @@ func (uc *PaymentUseCase) CreateInvoice(ctx context.Context, userID uuid.UUID, e
 
 	invoice := &entity.Invoice{
 		ID:            uuid.New(),
-		ExternalID:    uuid.MustParse(resp.ExternalID),
+		OrderID:       uuid.MustParse(resp.ExternalID),
 		Amount:        resp.Amount,
 		PaymentMethod: resp.PaymentMethod,
 		PayerEmail:    resp.PayerEmail,
@@ -84,7 +84,7 @@ func (uc *PaymentUseCase) CreateInvoice(ctx context.Context, userID uuid.UUID, e
 
 	response := &model.CreateInvoiceResponse{
 		ID:         invoice.ID.String(),
-		ExternalID: invoice.ExternalID.String(),
+		OrderID:    invoice.OrderID.String(),
 		XenditID:   invoice.XenditID,
 		InvoiceURL: invoice.InvoiceURL,
 		Amount:     invoice.Amount,
