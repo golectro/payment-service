@@ -42,7 +42,7 @@ func (r *InvoiceRepository) UpdateInvoice(
 
 	result := tx.Model(&entity.Invoice{}).
 		Where("order_id = ? AND xendit_id = ?", orderID, xenditID).
-		Omit("id", "created_at"). // skip kolom yang tidak boleh diubah
+		Omit("id", "created_at").
 		Updates(invoice)
 
 	if result.Error != nil {
@@ -51,6 +51,31 @@ func (r *InvoiceRepository) UpdateInvoice(
 	}
 	if result.RowsAffected == 0 {
 		r.Log.Warn("No invoice updated — possible invalid orderID")
+	}
+	return nil
+}
+
+func (r *InvoiceRepository) UpdateDeleteColumn(tx *gorm.DB, userID uuid.UUID, xenditID string) error {
+	r.Log.Infof("Updating delete column for userID: %s and xenditID: %s", userID, xenditID)
+
+	result := tx.Model(&entity.Invoice{}).
+		Where("user_id = ? AND xendit_id = ?", userID, xenditID).
+		Update("deleted_at", gorm.Expr("NOW()"))
+
+	if result.Error != nil {
+		r.Log.WithError(result.Error).Error("Failed to update delete column")
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		r.Log.Warn("No invoice updated — possible invalid userID or xenditID")
+	}
+	return nil
+}
+
+func (r *InvoiceRepository) FindByUserIDAndXenditID(tx *gorm.DB, userID uuid.UUID, xenditID string, invoice *entity.Invoice) error {
+	if err := tx.Where("user_id = ? AND xendit_id = ?", userID, xenditID).First(invoice).Error; err != nil {
+		r.Log.WithError(err).Error("Failed to find invoice by user ID and Xendit ID")
+		return err
 	}
 	return nil
 }

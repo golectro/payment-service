@@ -11,6 +11,10 @@ var (
 		"en": "Invoice retrieved successfully",
 		"id": "Tagihan berhasil diambil",
 	}
+	InvoiceDeleted = model.Message{
+		"en": "Invoice deleted successfully",
+		"id": "Tagihan berhasil dihapus",
+	}
 )
 
 var (

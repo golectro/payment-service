@@ -95,27 +95,30 @@ func (uc *PaymentUseCase) CreateInvoice(ctx context.Context, userID uuid.UUID, e
 	return response, nil
 }
 
-func (uc *PaymentUseCase) GetInvoiceByUserID(ctx context.Context, userID uuid.UUID) (*model.InvoiceResponse, error) {
+func (uc *PaymentUseCase) GetInvoiceByUserID(ctx context.Context, userID uuid.UUID) ([]*model.InvoiceResponse, error) {
 	tx := uc.DB.WithContext(ctx)
+	var invoices []entity.Invoice
 
-	var invoice entity.Invoice
-	if err := uc.InvoiceRepository.FindByUserID(tx, userID, &invoice); err != nil {
+	if err := uc.InvoiceRepository.FindAll(tx, &invoices); err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, utils.WrapMessageAsError(constants.InvoiceNotFound)
 		}
-		uc.Log.WithError(err).Error("Failed to retrieve invoice")
+		uc.Log.WithError(err).Error("Failed to retrieve invoices")
 		return nil, utils.WrapMessageAsError(constants.InternalServerError, err)
 	}
 
-	response := &model.InvoiceResponse{
-		ID:          invoice.ID.String(),
-		OrderID:     invoice.OrderID.String(),
-		XenditID:    invoice.XenditID,
-		InvoiceURL:  invoice.InvoiceURL,
-		Amount:      invoice.Amount,
-		Status:      invoice.Status,
-		PayerEmail:  invoice.PayerEmail,
-		Description: invoice.Description,
+	var response []*model.InvoiceResponse
+	for _, inv := range invoices {
+		response = append(response, &model.InvoiceResponse{
+			ID:          inv.ID.String(),
+			OrderID:     inv.OrderID.String(),
+			XenditID:    inv.XenditID,
+			InvoiceURL:  inv.InvoiceURL,
+			Amount:      inv.Amount,
+			Status:      inv.Status,
+			PayerEmail:  inv.PayerEmail,
+			Description: inv.Description,
+		})
 	}
 
 	return response, nil
@@ -180,4 +183,44 @@ func (uc *PaymentUseCase) HandleXenditCallback(ctx context.Context, callbackData
 	}
 
 	return response, nil
+}
+
+func (uc *PaymentUseCase) CheckInvoiceExists(ctx context.Context, userID uuid.UUID, xenditID string) (bool, error) {
+	if xenditID == "" {
+		return false, utils.WrapMessageAsError(constants.InvalidRequestData)
+	}
+
+	tx := uc.DB.WithContext(ctx)
+	var invoice entity.Invoice
+
+	if err := uc.InvoiceRepository.FindByUserIDAndXenditID(tx, userID, xenditID, &invoice); err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return false, nil // Invoice does not exist
+		}
+		uc.Log.WithError(err).Error("Failed to check if invoice exists")
+		return false, utils.WrapMessageAsError(constants.InternalServerError, err)
+	}
+
+	return true, nil
+}
+
+func (uc *PaymentUseCase) DeleteInvoice(ctx context.Context, userID uuid.UUID, xenditID string) error {
+	if xenditID == "" {
+		return utils.WrapMessageAsError(constants.InvalidRequestData)
+	}
+
+	tx := uc.DB.WithContext(ctx).Begin()
+	defer tx.Rollback()
+
+	if err := uc.InvoiceRepository.UpdateDeleteColumn(tx, userID, xenditID); err != nil {
+		uc.Log.WithError(err).Error("Failed to delete invoice")
+		return utils.WrapMessageAsError(constants.InternalServerError, err)
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		uc.Log.WithError(err).Error("Failed to commit transaction")
+		return utils.WrapMessageAsError(constants.InternalServerError, err)
+	}
+
+	return nil
 }

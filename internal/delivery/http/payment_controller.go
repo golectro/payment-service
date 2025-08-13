@@ -100,3 +100,39 @@ func (pc *PaymentController) XenditCallback(ctx *gin.Context) {
 	res := utils.SuccessResponse(ctx, http.StatusOK, constants.InvoiceRetrieved, invoice)
 	ctx.JSON(res.StatusCode, res)
 }
+
+func (pc *PaymentController) DeleteInvoice(ctx *gin.Context) {
+	auth := middleware.GetUser(ctx)
+	xenditID := ctx.Param("id")
+	if xenditID == "" {
+		pc.Log.Error("Xendit ID is required for deletion")
+		res := utils.FailedResponse(ctx, http.StatusBadRequest, constants.InvalidRequestData, nil)
+		ctx.AbortWithStatusJSON(res.StatusCode, res)
+		return
+	}
+
+	exists, errCI := pc.PaymentUseCase.CheckInvoiceExists(ctx, auth.ID, xenditID)
+	if errCI != nil {
+		pc.Log.WithError(errCI).Error("Failed to check if invoice exists")
+		res := utils.FailedResponse(ctx, http.StatusInternalServerError, constants.InternalServerError, errCI)
+		ctx.AbortWithStatusJSON(res.StatusCode, res)
+		return
+	}
+
+	if !exists {
+		pc.Log.Warn("Invoice not found for deletion")
+		res := utils.FailedResponse(ctx, http.StatusNotFound, constants.InvoiceNotFound, nil)
+		ctx.AbortWithStatusJSON(res.StatusCode, res)
+		return
+	}
+
+	if err := pc.PaymentUseCase.DeleteInvoice(ctx, auth.ID, xenditID); err != nil {
+		pc.Log.WithError(err).Error("Failed to delete invoice")
+		res := utils.FailedResponse(ctx, http.StatusInternalServerError, constants.InternalServerError, err)
+		ctx.AbortWithStatusJSON(res.StatusCode, res)
+		return
+	}
+
+	res := utils.SuccessResponse(ctx, http.StatusOK, constants.InvoiceDeleted, true)
+	ctx.JSON(res.StatusCode, res)
+}
