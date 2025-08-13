@@ -120,3 +120,64 @@ func (uc *PaymentUseCase) GetInvoiceByUserID(ctx context.Context, userID uuid.UU
 
 	return response, nil
 }
+
+func (uc *PaymentUseCase) HandleXenditCallback(ctx context.Context, callbackData *model.XenditCallbackData) (*model.InvoiceResponse, error) {
+	if err := uc.Validate.Struct(callbackData); err != nil {
+		message := utils.TranslateValidationError(uc.Validate, err)
+		return nil, utils.WrapMessageAsError(message, err)
+	}
+
+	tx := uc.DB.WithContext(ctx).Begin()
+	defer tx.Rollback()
+
+	orderID, err := uuid.Parse(callbackData.ExternalID)
+	if err != nil {
+		uc.Log.WithError(err).Error("Invalid invoice ID from Xendit callback")
+		return nil, utils.WrapMessageAsError(constants.InvalidRequestData, err)
+	}
+
+	var invoice entity.Invoice
+	if err := uc.InvoiceRepository.FindByOrderID(tx, orderID, &invoice); err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, utils.WrapMessageAsError(constants.InvoiceNotFound)
+		}
+		uc.Log.WithError(err).Error("Failed to find invoice by ID")
+		return nil, utils.WrapMessageAsError(constants.InternalServerError, err)
+	}
+
+	invoice.Status = callbackData.Status
+	invoice.Description = callbackData.Description
+	invoice.PaymentMethod = callbackData.PaymentMethod
+	invoice.PaymentChannel = callbackData.PaymentChannel
+	invoice.PayerEmail = callbackData.PayerEmail
+	invoice.XenditID = callbackData.ID
+
+	orderID, err = uuid.Parse(callbackData.ExternalID)
+	if err != nil {
+		uc.Log.WithError(err).Error("Invalid external ID from Xendit callback")
+		return nil, utils.WrapMessageAsError(constants.InvalidRequestData, err)
+	}
+
+	if err := uc.InvoiceRepository.UpdateInvoice(tx, orderID, callbackData.ID, &invoice); err != nil {
+		uc.Log.WithError(err).Error("Failed to update invoice")
+		return nil, utils.WrapMessageAsError(constants.InternalServerError, err)
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		uc.Log.WithError(err).Error("Failed to commit transaction")
+		return nil, utils.WrapMessageAsError(constants.InternalServerError, err)
+	}
+
+	response := &model.InvoiceResponse{
+		ID:          invoice.ID.String(),
+		OrderID:     invoice.OrderID.String(),
+		XenditID:    invoice.XenditID,
+		InvoiceURL:  invoice.InvoiceURL,
+		Amount:      invoice.Amount,
+		Status:      invoice.Status,
+		PayerEmail:  invoice.PayerEmail,
+		Description: invoice.Description,
+	}
+
+	return response, nil
+}

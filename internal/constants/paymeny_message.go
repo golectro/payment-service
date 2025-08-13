@@ -22,4 +22,8 @@ var (
 		"en": "Failed to create invoice",
 		"id": "Gagal membuat tagihan",
 	}
+	UnauthorizedAccess = model.Message{
+		"en": "Unauthorized access",
+		"id": "Akses tidak sah",
+	}
 )

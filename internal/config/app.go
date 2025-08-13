@@ -35,7 +35,7 @@ func Bootstrap(config *BootstrapConfig) {
 
 	paymentUseCase := usecase.NewPaymentUsecase(config.DB, config.Log, config.Validate, config.Viper, invoiceRepository)
 
-	paymentController := http.NewPaymentController(config.Log, paymentUseCase)
+	paymentController := http.NewPaymentController(config.Log, config.Viper, paymentUseCase)
 
 	authMiddleware := middleware.NewAuth(config.Viper)
 
