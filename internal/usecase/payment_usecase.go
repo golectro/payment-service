@@ -99,7 +99,7 @@ func (uc *PaymentUseCase) GetInvoiceByUserID(ctx context.Context, userID uuid.UU
 	tx := uc.DB.WithContext(ctx)
 	var invoices []entity.Invoice
 
-	if err := uc.InvoiceRepository.FindAll(tx, &invoices); err != nil {
+	if err := uc.InvoiceRepository.FindAllExceptDeletedByUserID(tx, userID, &invoices); err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, utils.WrapMessageAsError(constants.InvoiceNotFound)
 		}
@@ -195,7 +195,7 @@ func (uc *PaymentUseCase) CheckInvoiceExists(ctx context.Context, userID uuid.UU
 
 	if err := uc.InvoiceRepository.FindByUserIDAndXenditID(tx, userID, xenditID, &invoice); err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return false, nil // Invoice does not exist
+			return false, nil
 		}
 		uc.Log.WithError(err).Error("Failed to check if invoice exists")
 		return false, utils.WrapMessageAsError(constants.InternalServerError, err)

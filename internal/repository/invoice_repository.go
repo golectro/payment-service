@@ -79,3 +79,11 @@ func (r *InvoiceRepository) FindByUserIDAndXenditID(tx *gorm.DB, userID uuid.UUI
 	}
 	return nil
 }
+
+func (r *InvoiceRepository) FindAllExceptDeletedByUserID(tx *gorm.DB, userID uuid.UUID, invoices *[]entity.Invoice) error {
+	if err := tx.Where("user_id = ? AND deleted_at IS NULL", userID).Find(invoices).Error; err != nil {
+		r.Log.WithError(err).Error("Failed to find all invoices except deleted by user ID")
+		return err
+	}
+	return nil
+}
