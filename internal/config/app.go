@@ -11,6 +11,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/hashicorp/vault/api"
 	"github.com/redis/go-redis/v9"
+	"github.com/segmentio/kafka-go"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -19,15 +20,16 @@ import (
 )
 
 type BootstrapConfig struct {
-	DB         *gorm.DB
-	Mongo      *mongo.Database
-	App        *gin.Engine
-	Redis      *redis.Client
-	Log        *logrus.Logger
-	Validate   *validator.Validate
-	Viper      *viper.Viper
-	GRPCClient *grpc.ClientConn
-	Vault      *api.Client
+	DB          *gorm.DB
+	Mongo       *mongo.Database
+	App         *gin.Engine
+	Redis       *redis.Client
+	Log         *logrus.Logger
+	Validate    *validator.Validate
+	Viper       *viper.Viper
+	GRPCClient  *grpc.ClientConn
+	Vault       *api.Client
+	KafkaWriter *kafka.Writer
 }
 
 func Bootstrap(config *BootstrapConfig) {
@@ -35,7 +37,7 @@ func Bootstrap(config *BootstrapConfig) {
 
 	paymentUseCase := usecase.NewPaymentUsecase(config.DB, config.Log, config.Validate, config.Viper, invoiceRepository)
 
-	paymentController := http.NewPaymentController(config.Log, config.Viper, paymentUseCase)
+	paymentController := http.NewPaymentController(config.Log, config.Viper, paymentUseCase, config.KafkaWriter)
 
 	authMiddleware := middleware.NewAuth(config.Viper)
 

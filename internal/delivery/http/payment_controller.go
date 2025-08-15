@@ -1,14 +1,18 @@
 package http
 
 import (
+	"context"
+	"encoding/json"
 	"golectro-payment/internal/constants"
 	"golectro-payment/internal/delivery/http/middleware"
 	"golectro-payment/internal/model"
 	"golectro-payment/internal/usecase"
 	"golectro-payment/internal/utils"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/segmentio/kafka-go"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
@@ -17,13 +21,15 @@ type PaymentController struct {
 	Log            *logrus.Logger
 	PaymentUseCase *usecase.PaymentUseCase
 	Viper          *viper.Viper
+	KafkaWriter    *kafka.Writer
 }
 
-func NewPaymentController(log *logrus.Logger, viper *viper.Viper, useCase *usecase.PaymentUseCase) *PaymentController {
+func NewPaymentController(log *logrus.Logger, viper *viper.Viper, useCase *usecase.PaymentUseCase, kafkaWriter *kafka.Writer) *PaymentController {
 	return &PaymentController{
 		Log:            log,
 		PaymentUseCase: useCase,
 		Viper:          viper,
+		KafkaWriter:    kafkaWriter,
 	}
 }
 
@@ -95,6 +101,19 @@ func (pc *PaymentController) XenditCallback(ctx *gin.Context) {
 		res := utils.FailedResponse(ctx, http.StatusInternalServerError, constants.InternalServerError, err)
 		ctx.AbortWithStatusJSON(res.StatusCode, res)
 		return
+	}
+
+	value, _ := json.Marshal(invoice)
+
+	message := kafka.Message{
+		Value: value,
+	}
+
+	ctxKafka, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := pc.KafkaWriter.WriteMessages(ctxKafka, message); err != nil {
+		pc.Log.WithError(err).Error("Failed to publish Kafka message")
 	}
 
 	res := utils.SuccessResponse(ctx, http.StatusOK, constants.InvoiceRetrieved, invoice)
