@@ -40,5 +40,4 @@ func main() {
 	if err := app.Run(fmt.Sprintf(":%d", webPort)); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
-
 }
