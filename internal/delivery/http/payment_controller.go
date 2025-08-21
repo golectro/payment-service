@@ -62,7 +62,7 @@ func (pc *PaymentController) CreateInvoice(ctx *gin.Context) {
 		return
 	}
 
-	result, err := pc.PaymentUseCase.CreateInvoice(ctx, auth.ID, auth.Email, request)
+	result, err := pc.PaymentUseCase.CreateInvoice(ctx, auth.ID, auth.Email, request, order.TotalAmount)
 	if err != nil {
 		pc.Log.WithError(err).Error("Failed to create invoice")
 		res := utils.FailedResponse(ctx, http.StatusInternalServerError, constants.InternalServerError, err)

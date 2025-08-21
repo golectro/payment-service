@@ -1,9 +1,8 @@
 package model
 
 type CreateInvoiceRequest struct {
-	OrderID     string  `json:"order_id" validate:"required"`
-	Amount      float64 `json:"amount" validate:"required"`
-	Description string  `json:"description" validate:"required"`
+	OrderID     string `json:"order_id" validate:"required"`
+	Description string `json:"description" validate:"required"`
 }
 
 type CreateInvoiceResponse struct {

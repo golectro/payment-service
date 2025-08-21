@@ -36,7 +36,10 @@ func NewPaymentUsecase(db *gorm.DB, log *logrus.Logger, validate *validator.Vali
 	}
 }
 
-func (uc *PaymentUseCase) CreateInvoice(ctx context.Context, userID uuid.UUID, email string, request *model.CreateInvoiceRequest) (*model.CreateInvoiceResponse, error) {
+func (uc *PaymentUseCase) CreateInvoice(ctx context.Context, userID uuid.UUID, email string, request *model.CreateInvoiceRequest, totalAmount int64) (*model.CreateInvoiceResponse, error) {
+	tx := uc.DB.WithContext(ctx).Begin()
+	defer tx.Rollback()
+
 	if err := uc.Validate.Struct(request); err != nil {
 		message := utils.TranslateValidationError(uc.Validate, err)
 		return nil, utils.WrapMessageAsError(message)
@@ -46,7 +49,7 @@ func (uc *PaymentUseCase) CreateInvoice(ctx context.Context, userID uuid.UUID, e
 
 	resp, err := invoice.Create(&invoice.CreateParams{
 		ExternalID:         request.OrderID,
-		Amount:             request.Amount,
+		Amount:             float64(totalAmount),
 		PayerEmail:         email,
 		Description:        request.Description,
 		SuccessRedirectURL: "",
@@ -56,9 +59,6 @@ func (uc *PaymentUseCase) CreateInvoice(ctx context.Context, userID uuid.UUID, e
 		uc.Log.WithError(err).Error("Failed to create invoice in Xendit")
 		return nil, utils.WrapMessageAsError(constants.FailedToCreateInvoice, err)
 	}
-
-	tx := uc.DB.WithContext(ctx).Begin()
-	defer tx.Rollback()
 
 	invoice := &entity.Invoice{
 		ID:            uuid.New(),
