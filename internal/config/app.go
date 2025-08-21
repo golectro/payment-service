@@ -9,7 +9,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"github.com/hashicorp/vault/api"
 	"github.com/redis/go-redis/v9"
 	"github.com/segmentio/kafka-go"
 	"github.com/sirupsen/logrus"
@@ -28,7 +27,6 @@ type BootstrapConfig struct {
 	Validate    *validator.Validate
 	Viper       *viper.Viper
 	GRPCClient  *grpc.ClientConn
-	Vault       *api.Client
 	KafkaWriter *kafka.Writer
 }
 
