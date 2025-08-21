@@ -15,6 +15,10 @@ var (
 		"en": "Invoice deleted successfully",
 		"id": "Tagihan berhasil dihapus",
 	}
+	OrderNotFound = model.Message{
+		"en": "Order not found",
+		"id": "Pesanan tidak ditemukan",
+	}
 )
 
 var (

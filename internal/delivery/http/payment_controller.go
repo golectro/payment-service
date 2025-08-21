@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"golectro-payment/internal/constants"
+	"golectro-payment/internal/delivery/grpc/client"
 	"golectro-payment/internal/delivery/http/middleware"
 	"golectro-payment/internal/model"
 	"golectro-payment/internal/usecase"
@@ -20,14 +21,16 @@ import (
 type PaymentController struct {
 	Log            *logrus.Logger
 	PaymentUseCase *usecase.PaymentUseCase
+	OrderClient    *client.OrderClient
 	Viper          *viper.Viper
 	KafkaWriter    *kafka.Writer
 }
 
-func NewPaymentController(log *logrus.Logger, viper *viper.Viper, useCase *usecase.PaymentUseCase, kafkaWriter *kafka.Writer) *PaymentController {
+func NewPaymentController(log *logrus.Logger, viper *viper.Viper, useCase *usecase.PaymentUseCase, kafkaWriter *kafka.Writer, orderClient *client.OrderClient) *PaymentController {
 	return &PaymentController{
 		Log:            log,
 		PaymentUseCase: useCase,
+		OrderClient:    orderClient,
 		Viper:          viper,
 		KafkaWriter:    kafkaWriter,
 	}
@@ -40,6 +43,21 @@ func (pc *PaymentController) CreateInvoice(ctx *gin.Context) {
 	if err := ctx.ShouldBindJSON(request); err != nil {
 		pc.Log.WithError(err).Error("Invalid request data")
 		res := utils.FailedResponse(ctx, http.StatusBadRequest, constants.InvalidRequestData, err)
+		ctx.AbortWithStatusJSON(res.StatusCode, res)
+		return
+	}
+
+	order, err := pc.OrderClient.GetOrderByID(ctx, request.OrderID)
+	if err != nil {
+		pc.Log.WithError(err).Error("Failed to retrieve order")
+		res := utils.FailedResponse(ctx, http.StatusNotFound, constants.OrderNotFound, nil)
+		ctx.AbortWithStatusJSON(res.StatusCode, res)
+		return
+	}
+
+	if order == nil {
+		pc.Log.Warn("Order not found")
+		res := utils.FailedResponse(ctx, http.StatusNotFound, constants.OrderNotFound, nil)
 		ctx.AbortWithStatusJSON(res.StatusCode, res)
 		return
 	}

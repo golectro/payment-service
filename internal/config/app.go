@@ -1,6 +1,7 @@
 package config
 
 import (
+	"golectro-payment/internal/delivery/grpc/client"
 	"golectro-payment/internal/delivery/http"
 	"golectro-payment/internal/delivery/http/middleware"
 	"golectro-payment/internal/delivery/http/route"
@@ -31,11 +32,13 @@ type BootstrapConfig struct {
 }
 
 func Bootstrap(config *BootstrapConfig) {
+	orderClient := client.NewOrderClient(config.Log, config.Viper)
+
 	invoiceRepository := repository.NewInvoiceRepository(config.Log)
 
 	paymentUseCase := usecase.NewPaymentUsecase(config.DB, config.Log, config.Validate, config.Viper, invoiceRepository)
 
-	paymentController := http.NewPaymentController(config.Log, config.Viper, paymentUseCase, config.KafkaWriter)
+	paymentController := http.NewPaymentController(config.Log, config.Viper, paymentUseCase, config.KafkaWriter, orderClient)
 
 	authMiddleware := middleware.NewAuth(config.Viper)
 
