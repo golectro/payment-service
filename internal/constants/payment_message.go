@@ -30,6 +30,10 @@ var (
 		"en": "Failed to create invoice",
 		"id": "Gagal membuat tagihan",
 	}
+	InvoiceAlreadyExists = model.Message{
+		"en": "Invoice already exists for this order",
+		"id": "Tagihan sudah ada untuk pesanan ini",
+	}
 	UnauthorizedAccess = model.Message{
 		"en": "Unauthorized access",
 		"id": "Akses tidak sah",
