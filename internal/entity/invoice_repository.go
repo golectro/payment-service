@@ -7,6 +7,8 @@ import (
 	"gorm.io/gorm"
 )
 
+type InvoiceStatus string
+
 type Invoice struct {
 	ID             uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
 	OrderID        uuid.UUID      `gorm:"type:char(36);index" json:"order_id"`

@@ -124,6 +124,32 @@ func (uc *PaymentUseCase) GetInvoiceByUserID(ctx context.Context, userID uuid.UU
 	return response, nil
 }
 
+func (uc *PaymentUseCase) GetInvoiceByOrderID(ctx context.Context, orderID uuid.UUID) (*model.InvoiceResponse, error) {
+	tx := uc.DB.WithContext(ctx)
+	var invoice entity.Invoice
+
+	if err := uc.InvoiceRepository.FindByOrderID(tx, orderID, &invoice); err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, utils.WrapMessageAsError(constants.InvoiceNotFound)
+		}
+		uc.Log.WithError(err).Error("Failed to retrieve invoice by order ID")
+		return nil, utils.WrapMessageAsError(constants.InternalServerError, err)
+	}
+
+	response := &model.InvoiceResponse{
+		ID:          invoice.ID.String(),
+		OrderID:     invoice.OrderID.String(),
+		XenditID:    invoice.XenditID,
+		InvoiceURL:  invoice.InvoiceURL,
+		Amount:      invoice.Amount,
+		Status:      invoice.Status,
+		PayerEmail:  invoice.PayerEmail,
+		Description: invoice.Description,
+	}
+
+	return response, nil
+}
+
 func (uc *PaymentUseCase) HandleXenditCallback(ctx context.Context, callbackData *model.XenditCallbackData) (*model.InvoiceResponse, error) {
 	if err := uc.Validate.Struct(callbackData); err != nil {
 		message := utils.TranslateValidationError(uc.Validate, err)

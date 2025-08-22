@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/segmentio/kafka-go"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -58,6 +59,29 @@ func (pc *PaymentController) CreateInvoice(ctx *gin.Context) {
 	if order == nil {
 		pc.Log.Warn("Order not found")
 		res := utils.FailedResponse(ctx, http.StatusNotFound, constants.OrderNotFound, nil)
+		ctx.AbortWithStatusJSON(res.StatusCode, res)
+		return
+	}
+
+	orderUUID, err := uuid.Parse(request.OrderID)
+	if err != nil {
+		pc.Log.WithError(err).Error("Invalid OrderID format")
+		res := utils.FailedResponse(ctx, http.StatusBadRequest, constants.InvalidRequestData, err)
+		ctx.AbortWithStatusJSON(res.StatusCode, res)
+		return
+	}
+
+	invoiceExists, err := pc.PaymentUseCase.GetInvoiceByOrderID(ctx, orderUUID)
+	if err != nil {
+		pc.Log.WithError(err).Error("Failed to check if invoice exists")
+		res := utils.FailedResponse(ctx, http.StatusInternalServerError, constants.InternalServerError, err)
+		ctx.AbortWithStatusJSON(res.StatusCode, res)
+		return
+	}
+
+	if invoiceExists != nil {
+		pc.Log.Warn("Invoice already exists for this order")
+		res := utils.FailedResponse(ctx, http.StatusConflict, constants.InvoiceAlreadyExists, nil)
 		ctx.AbortWithStatusJSON(res.StatusCode, res)
 		return
 	}
