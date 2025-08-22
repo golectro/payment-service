@@ -45,7 +45,7 @@ func getDocumentationURL(ctx *gin.Context) string {
 		fullPath = fmt.Sprintf("%s/%s", fullPath, strings.ToLower(ctx.Request.Method))
 	}
 
-	return fmt.Sprintf("%s://%s/api/docs/#/%s", scheme, host, fullPath)
+	return fmt.Sprintf("%s://%s/docs/#/%s", scheme, host, fullPath)
 }
 
 func getCurrentTimestamp() string {

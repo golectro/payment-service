@@ -4,8 +4,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (c *RouteConfig) RegisterSwaggerRoutes(rg *gin.RouterGroup) {
-	swagger := rg.Group("/docs")
+func (c *RouteConfig) RegisterSwaggerRoutes(app *gin.Engine) {
+	swagger := app.Group("/docs")
 	swagger.StaticFile("/swagger.json", "./docs/swagger.json")
 	swagger.GET("/", c.SwaggerController.SwaggerDocHandler)
 }
