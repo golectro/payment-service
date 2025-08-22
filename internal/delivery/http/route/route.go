@@ -16,9 +16,9 @@ type RouteConfig struct {
 }
 
 func (c *RouteConfig) Setup() {
-	api := c.App.Group("/api")
+	api := c.App.Group("/api/v1")
 
-	c.RegisterCommonRoutes(c.App)
-	c.RegisterSwaggerRoutes(api)
 	c.RegisterPaymentRoutes(api)
+	c.RegisterSwaggerRoutes(c.App)
+	c.RegisterCommonRoutes(c.App)
 }
