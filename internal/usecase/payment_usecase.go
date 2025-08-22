@@ -36,7 +36,10 @@ func NewPaymentUsecase(db *gorm.DB, log *logrus.Logger, validate *validator.Vali
 	}
 }
 
-func (uc *PaymentUseCase) CreateInvoice(ctx context.Context, userID uuid.UUID, email string, request *model.CreateInvoiceRequest) (*model.CreateInvoiceResponse, error) {
+func (uc *PaymentUseCase) CreateInvoice(ctx context.Context, userID uuid.UUID, email string, request *model.CreateInvoiceRequest, totalAmount int64) (*model.CreateInvoiceResponse, error) {
+	tx := uc.DB.WithContext(ctx).Begin()
+	defer tx.Rollback()
+
 	if err := uc.Validate.Struct(request); err != nil {
 		message := utils.TranslateValidationError(uc.Validate, err)
 		return nil, utils.WrapMessageAsError(message)
@@ -46,7 +49,7 @@ func (uc *PaymentUseCase) CreateInvoice(ctx context.Context, userID uuid.UUID, e
 
 	resp, err := invoice.Create(&invoice.CreateParams{
 		ExternalID:         request.OrderID,
-		Amount:             request.Amount,
+		Amount:             float64(totalAmount),
 		PayerEmail:         email,
 		Description:        request.Description,
 		SuccessRedirectURL: "",
@@ -56,9 +59,6 @@ func (uc *PaymentUseCase) CreateInvoice(ctx context.Context, userID uuid.UUID, e
 		uc.Log.WithError(err).Error("Failed to create invoice in Xendit")
 		return nil, utils.WrapMessageAsError(constants.FailedToCreateInvoice, err)
 	}
-
-	tx := uc.DB.WithContext(ctx).Begin()
-	defer tx.Rollback()
 
 	invoice := &entity.Invoice{
 		ID:            uuid.New(),
@@ -119,6 +119,32 @@ func (uc *PaymentUseCase) GetInvoiceByUserID(ctx context.Context, userID uuid.UU
 			PayerEmail:  inv.PayerEmail,
 			Description: inv.Description,
 		})
+	}
+
+	return response, nil
+}
+
+func (uc *PaymentUseCase) GetInvoiceByOrderID(ctx context.Context, orderID uuid.UUID) (*model.InvoiceResponse, error) {
+	tx := uc.DB.WithContext(ctx)
+	var invoice entity.Invoice
+
+	if err := uc.InvoiceRepository.FindByOrderID(tx, orderID, &invoice); err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, utils.WrapMessageAsError(constants.InvoiceNotFound)
+		}
+		uc.Log.WithError(err).Error("Failed to retrieve invoice by order ID")
+		return nil, utils.WrapMessageAsError(constants.InternalServerError, err)
+	}
+
+	response := &model.InvoiceResponse{
+		ID:          invoice.ID.String(),
+		OrderID:     invoice.OrderID.String(),
+		XenditID:    invoice.XenditID,
+		InvoiceURL:  invoice.InvoiceURL,
+		Amount:      invoice.Amount,
+		Status:      invoice.Status,
+		PayerEmail:  invoice.PayerEmail,
+		Description: invoice.Description,
 	}
 
 	return response, nil

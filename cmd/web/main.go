@@ -13,7 +13,6 @@ func main() {
 	mongo := config.NewMongoDB(viper, log)
 	validate := config.NewValidator(viper)
 	redis := config.NewRedis(viper, log)
-	vault := config.NewVaultClient(viper, log)
 	kafkaWriter := config.NewKafkaWriter(viper, log)
 	app := config.NewGin(viper, log, mongo, redis)
 	executor := command.NewCommandExecutor(viper, db)
@@ -26,7 +25,6 @@ func main() {
 		Validate:    validate,
 		App:         app,
 		Redis:       redis,
-		Vault:       vault,
 		KafkaWriter: kafkaWriter,
 	})
 

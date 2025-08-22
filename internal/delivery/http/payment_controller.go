@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"golectro-payment/internal/constants"
+	"golectro-payment/internal/delivery/grpc/client"
 	"golectro-payment/internal/delivery/http/middleware"
 	"golectro-payment/internal/model"
 	"golectro-payment/internal/usecase"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/segmentio/kafka-go"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -20,14 +22,16 @@ import (
 type PaymentController struct {
 	Log            *logrus.Logger
 	PaymentUseCase *usecase.PaymentUseCase
+	OrderClient    *client.OrderClient
 	Viper          *viper.Viper
 	KafkaWriter    *kafka.Writer
 }
 
-func NewPaymentController(log *logrus.Logger, viper *viper.Viper, useCase *usecase.PaymentUseCase, kafkaWriter *kafka.Writer) *PaymentController {
+func NewPaymentController(log *logrus.Logger, viper *viper.Viper, useCase *usecase.PaymentUseCase, kafkaWriter *kafka.Writer, orderClient *client.OrderClient) *PaymentController {
 	return &PaymentController{
 		Log:            log,
 		PaymentUseCase: useCase,
+		OrderClient:    orderClient,
 		Viper:          viper,
 		KafkaWriter:    kafkaWriter,
 	}
@@ -44,7 +48,45 @@ func (pc *PaymentController) CreateInvoice(ctx *gin.Context) {
 		return
 	}
 
-	result, err := pc.PaymentUseCase.CreateInvoice(ctx, auth.ID, auth.Email, request)
+	order, err := pc.OrderClient.GetOrderByID(ctx, request.OrderID)
+	if err != nil {
+		pc.Log.WithError(err).Error("Failed to retrieve order")
+		res := utils.FailedResponse(ctx, http.StatusNotFound, constants.OrderNotFound, nil)
+		ctx.AbortWithStatusJSON(res.StatusCode, res)
+		return
+	}
+
+	if order == nil {
+		pc.Log.Warn("Order not found")
+		res := utils.FailedResponse(ctx, http.StatusNotFound, constants.OrderNotFound, nil)
+		ctx.AbortWithStatusJSON(res.StatusCode, res)
+		return
+	}
+
+	orderUUID, err := uuid.Parse(request.OrderID)
+	if err != nil {
+		pc.Log.WithError(err).Error("Invalid OrderID format")
+		res := utils.FailedResponse(ctx, http.StatusBadRequest, constants.InvalidRequestData, err)
+		ctx.AbortWithStatusJSON(res.StatusCode, res)
+		return
+	}
+
+	invoiceExists, err := pc.PaymentUseCase.GetInvoiceByOrderID(ctx, orderUUID)
+	if err != nil {
+		pc.Log.WithError(err).Error("Failed to check if invoice exists")
+		res := utils.FailedResponse(ctx, http.StatusInternalServerError, constants.InternalServerError, err)
+		ctx.AbortWithStatusJSON(res.StatusCode, res)
+		return
+	}
+
+	if invoiceExists != nil {
+		pc.Log.Warn("Invoice already exists for this order")
+		res := utils.FailedResponse(ctx, http.StatusConflict, constants.InvoiceAlreadyExists, nil)
+		ctx.AbortWithStatusJSON(res.StatusCode, res)
+		return
+	}
+
+	result, err := pc.PaymentUseCase.CreateInvoice(ctx, auth.ID, auth.Email, request, order.TotalAmount)
 	if err != nil {
 		pc.Log.WithError(err).Error("Failed to create invoice")
 		res := utils.FailedResponse(ctx, http.StatusInternalServerError, constants.InternalServerError, err)

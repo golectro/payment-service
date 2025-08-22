@@ -28,7 +28,7 @@ func (r *InvoiceRepository) FindByUserID(tx *gorm.DB, userID uuid.UUID, invoice 
 }
 
 func (r *InvoiceRepository) FindByOrderID(tx *gorm.DB, orderID uuid.UUID, invoice *entity.Invoice) error {
-	if err := tx.Where("order_id = ?", orderID).First(invoice).Error; err != nil {
+	if err := tx.Where("order_id = ?", orderID).Where("status = ?", "PENDING").First(invoice).Error; err != nil {
 		r.Log.WithError(err).Error("Failed to find invoice by order ID")
 		return err
 	}

@@ -15,6 +15,10 @@ var (
 		"en": "Invoice deleted successfully",
 		"id": "Tagihan berhasil dihapus",
 	}
+	OrderNotFound = model.Message{
+		"en": "Order not found",
+		"id": "Pesanan tidak ditemukan",
+	}
 )
 
 var (
@@ -25,6 +29,10 @@ var (
 	FailedToCreateInvoice = model.Message{
 		"en": "Failed to create invoice",
 		"id": "Gagal membuat tagihan",
+	}
+	InvoiceAlreadyExists = model.Message{
+		"en": "Invoice already exists for this order",
+		"id": "Tagihan sudah ada untuk pesanan ini",
 	}
 	UnauthorizedAccess = model.Message{
 		"en": "Unauthorized access",
