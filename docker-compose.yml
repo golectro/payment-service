@@ -5,7 +5,20 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: golectro-payment
     ports:
       - "8082:8082"
       - "50053:50053"
     restart: unless-stopped
+    environment:
+      APP_NAME: golectro-payment
+      PORT: 8082
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_TOPIC: golectro-payment
+      KAFKA_GROUP_ID: golectro-payment-group
+    networks:
+      - golectro-net
+
+networks:
+  golectro-net:
+    external: true
