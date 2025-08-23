@@ -150,6 +150,28 @@ func (uc *PaymentUseCase) GetInvoiceByOrderID(ctx context.Context, orderID uuid.
 	return response, nil
 }
 
+func (uc *PaymentUseCase) GetInvoiceByID(ctx context.Context, orderID uuid.UUID) (*model.InvoiceResponse, error) {
+	tx := uc.DB.WithContext(ctx)
+	var invoice entity.Invoice
+
+	if err := uc.InvoiceRepository.FindByOrderID(tx, orderID, &invoice); err != nil {
+		return nil, nil
+	}
+
+	response := &model.InvoiceResponse{
+		ID:          invoice.ID.String(),
+		OrderID:     invoice.OrderID.String(),
+		XenditID:    invoice.XenditID,
+		InvoiceURL:  invoice.InvoiceURL,
+		Amount:      invoice.Amount,
+		Status:      invoice.Status,
+		PayerEmail:  invoice.PayerEmail,
+		Description: invoice.Description,
+	}
+
+	return response, nil
+}
+
 func (uc *PaymentUseCase) HandleXenditCallback(ctx context.Context, callbackData *model.XenditCallbackData) (*model.InvoiceResponse, error) {
 	if err := uc.Validate.Struct(callbackData); err != nil {
 		message := utils.TranslateValidationError(uc.Validate, err)

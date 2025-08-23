@@ -71,7 +71,7 @@ func (pc *PaymentController) CreateInvoice(ctx *gin.Context) {
 		return
 	}
 
-	invoiceExists, err := pc.PaymentUseCase.GetInvoiceByOrderID(ctx, orderUUID)
+	invoiceExists, err := pc.PaymentUseCase.GetInvoiceByID(ctx, orderUUID)
 	if err != nil {
 		pc.Log.WithError(err).Error("Failed to check if invoice exists")
 		res := utils.FailedResponse(ctx, http.StatusInternalServerError, constants.InternalServerError, err)
